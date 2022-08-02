@@ -1,14 +1,9 @@
+import { User } from '@db/types';
 import { decryptData } from '@utils/encryption';
-import { isTruthy } from '@utils/typeguards';
-import { CallbackQuery, Message } from 'node-telegram-bot-api';
+import { Message } from 'node-telegram-bot-api';
 import { Model } from 'sequelize';
 
-import config from '../config';
-import { commands, ERRORS, tApiErrors } from '../constants';
-import { deleteLastMessage } from '../controller';
-import { bot, deleteUser } from '../model';
-
-import { idKeys, KeyboardItem, Options, User, WithCommandLine } from './types';
+import { commands, ERRORS } from '../constants';
 
 export function isUrl(message?: string, target: 'chat' | 'reply' = 'chat') {
     if (!message) {
@@ -87,97 +82,6 @@ export async function getMessageData(message: Message) {
     };
 }
 
-export function getCallbackQueryData(query: CallbackQuery) {
-    const data = query.data as Options;
-    const chatId = query.message?.chat.id;
-    const userId = query.from.id;
-    const userName = query.from.username;
-    const messageId = query.message?.message_id;
-
-    if (!userName || !chatId || !messageId) {
-        throw new Error(ERRORS.someIdsMissing);
-    }
-
-    const ids: idKeys = {
-        userId,
-        chatId,
-        userName,
-        messageId,
-    };
-
-    return { data, ...ids };
-}
-
-export async function sendWithCommandLine({
-    fromCommandLine,
-    messageText,
-    keyboard,
-    ...ids
-}: idKeys & { keyboard: KeyboardItem[][]; messageText?: string } & WithCommandLine) {
-    const { chatId, messageId } = ids;
-
-    return fromCommandLine && messageText
-        ? (await deleteLastMessage(ids)) &&
-              bot.sendMessage(chatId, messageText, {
-                  reply_markup: {
-                      inline_keyboard: keyboard,
-                  },
-              })
-        : await bot.editMessageReplyMarkup(
-              {
-                  inline_keyboard: keyboard,
-              },
-              { message_id: messageId, chat_id: chatId }
-          );
-}
-
 export function generateRandomNumber() {
     return Math.floor(new Date().getTime() + Math.random() * 10000);
-}
-
-export async function checkForUserStartBot(args: idKeys) {
-    return await bot
-        .sendChatAction(args.userId, 'typing')
-        .catch((error) => handleApiError({ error, ...args }));
-}
-
-export async function handleApiError({
-    error,
-    ...ids
-}: idKeys & { error: { response: { body: { error_code: number; description: string } } } }) {
-    const { userName, chatId } = ids;
-
-    const name = isTruthy(userName) ? `@${userName}` : 'Уважаемый(ая)';
-
-    await deleteLastMessage(ids);
-    const code = error.response.body.error_code;
-    const description = error.response.body.description;
-    let message = '';
-
-    function setMessage(msg: string) {
-        message = msg;
-    }
-
-    const userBotConversationMessage = `${name}, ${ERRORS.userBotConversationError}\n https://t.me/${config.NAME}`;
-
-    switch (code) {
-        case 403: {
-            description === tApiErrors.botUserRestriction && setMessage(userBotConversationMessage);
-
-            if (description === tApiErrors.botBannedRestriction) {
-                await deleteUser(ids);
-                setMessage(`${name}, ${ERRORS.botWasBannedByTheUser}`);
-            }
-            break;
-        }
-
-        case 400: {
-            description === tApiErrors.invalidPeerId && setMessage(userBotConversationMessage);
-            break;
-        }
-    }
-
-    isTruthy(message) && (await bot.sendMessage(chatId, message));
-
-    return new Error(message);
 }

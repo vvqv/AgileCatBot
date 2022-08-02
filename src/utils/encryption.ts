@@ -1,6 +1,5 @@
-import Crypto from 'crypto';
-
 import config from '@src/config';
+import Crypto from 'crypto';
 
 const alg = 'aes-256-cbc';
 

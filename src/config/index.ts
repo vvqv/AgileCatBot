@@ -1,8 +1,3 @@
-import dotenv from 'dotenv';
-import path from 'path';
-
-dotenv.config({ path: path.resolve(__dirname, '../config/config.env') });
-
 interface Config {
     NAME: string;
     TOKEN: string;
