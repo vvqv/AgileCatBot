@@ -28,16 +28,16 @@ async function init() {
         const { isUserNeedsReview, hasUserCalledBot, msg, userName, ...keys } =
             await getMessageData(message);
 
+        const ids: idKeys = {
+            ...keys,
+            userName: userName || '',
+        };
+
         if (hasUserCalledBot) {
             if (!isDefined(userName)) {
                 await deleteLastMessage({ ...keys, userName: '' });
                 return await bot.sendMessage(keys.chatId, ERRORS.pleaseSetNickName);
             }
-
-            const ids: idKeys = {
-                ...keys,
-                userName: '',
-            };
 
             return ids.chatId === ids.userId
                 ? await restrictChatAction(ids)
@@ -51,14 +51,15 @@ async function init() {
                 ? await sendMentions(ids)
                 : commands.reviewCommand.includes(msg)
                 ? await specificTeamReview({ ...ids, fromCommandLine: true })
-                : message.left_chat_member
-                ? await deleteUser({ ...ids, userId: message.left_chat_member.id })
-                : message.new_chat_members
-                ? await greetingsUser(ids)
                 : isUserNeedsReview
                 ? await sendMentions({ ...ids, message: msg })
                 : null;
         }
+
+        message.left_chat_member &&
+            (await deleteUser({ ...ids, userId: message.left_chat_member.id }));
+
+        message.new_chat_members && (await greetingsUser(ids));
     });
 }
 

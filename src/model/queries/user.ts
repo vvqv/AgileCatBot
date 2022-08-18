@@ -364,10 +364,13 @@ export async function deleteUser({ userId, chatId }: idKeys) {
     }
 
     isNotNil(userGroupsModel) &&
-        (await userGroupsModel.destroy().then(async () => {
-            const hasUserGroups = await checkHasUserGroups();
-            !hasUserGroups && (await removeUser());
-        }));
+        (await userGroupsModel
+            .destroy()
+            .then(async () => {
+                const hasUserGroups = await checkHasUserGroups();
+                !hasUserGroups && (await removeUser());
+            })
+            .then(async () => await bot.sendMessage(chatId, NOTIFICATIONS.userDeleted)));
 }
 
 /** Функция получения случайного пользователя из другой команды */
