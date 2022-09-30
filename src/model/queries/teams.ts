@@ -4,7 +4,7 @@ import uId from 'uniqid';
 import { ERRORS, NOTIFICATIONS } from '@src/constants';
 import { generateRandomNumber, idKeys, isDefined, isTruthy } from '@src/utils';
 
-import { bot, checkUserAdminStatus } from '../index';
+import { bot, checkUserAdminStatus, getTeamUsersList } from '../index';
 import { TeamsModel } from '../models';
 
 export type TeamQueryPayload = idKeys & {
@@ -36,6 +36,20 @@ export async function getTeamInfo({ chatId, teamId }: idKeys & { teamId: string 
     const data = model.get();
 
     return { ...data, teamName: decryptData(data.teamName), chatId: decryptData(data.chatId) };
+}
+
+export async function getAllTeamsInfo(ids: idKeys) {
+    const { chatId } = ids;
+
+    const models = await TeamsModel.findAll({ where: { chatId: encryptData(`${chatId}`) } });
+
+    return models.map(async (model) => {
+        const data = model.get();
+
+        const users = await getTeamUsersList({ ...ids, teamId: data.teamId });
+
+        return { teamName: decryptData(data.teamName), users };
+    });
 }
 
 export async function addTeam({ teamName, ...ids }: TeamQueryPayload) {

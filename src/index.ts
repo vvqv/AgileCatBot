@@ -11,6 +11,7 @@ import {
     selectAction,
     sendMentions,
     specificTeamReview,
+    toggleVacation,
 } from './controller';
 import { restoreJobs } from './controller/shedules';
 import { bot, deleteUser, initDB } from './model';
@@ -25,8 +26,14 @@ async function init() {
     const commands = createChatCommands(config.NAME);
 
     bot.on('message', async (message) => {
-        const { isUserNeedsReview, hasUserCalledBot, msg, userName, ...keys } =
-            await getMessageData(message);
+        const {
+            isUserNeedsReview,
+            isUserNeedsSingleReview,
+            hasUserCalledBot,
+            msg,
+            userName,
+            ...keys
+        } = await getMessageData(message);
 
         const ids: idKeys = {
             ...keys,
@@ -51,8 +58,12 @@ async function init() {
                 ? await sendMentions(ids)
                 : commands.reviewCommand.includes(msg)
                 ? await specificTeamReview({ ...ids, fromCommandLine: true })
+                : commands.vacation.includes(msg)
+                ? await toggleVacation(ids)
                 : isUserNeedsReview
                 ? await sendMentions({ ...ids, message: msg })
+                : isUserNeedsSingleReview
+                ? await changeReviewer({ ...ids, message: msg })
                 : null;
         }
 

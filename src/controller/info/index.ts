@@ -1,6 +1,14 @@
 import { ERRORS, TREATMENTS } from '@src/constants';
-import { bot, getTeamInfo, getTeamUsersList, getUserTeamInfo, updateUser } from '@src/model';
-import { getCallbackQueryData, idKeys, isTruthy, WithCommandLine } from '@src/utils';
+import {
+    bot,
+    getAllTeamsInfo,
+    getTeamInfo,
+    getTeamUsersList,
+    getUserInfo,
+    getUserTeamInfo,
+    updateUser,
+} from '@src/model';
+import { getCallbackQueryData, idKeys, isNotNil, WithCommandLine } from '@src/utils';
 
 import { deleteLastMessage } from '../chat';
 
@@ -58,6 +66,44 @@ export async function sendUserTeamInfo(keys: idKeys) {
     return await bot.sendMessage(userId, message).finally(() => deleteLastMessage(keys));
 }
 
+export async function sendAllTeamsInfo(keys: idKeys) {
+    const usersList = await getAllTeamsInfo(keys);
+    const chatInfo = await bot.getChat(keys.chatId);
+
+    let message = `В группе <b>"${chatInfo.title}"</b>:\n\n`;
+
+    for (const teamData of usersList) {
+        const { teamName, users } = await teamData;
+
+        message +=
+            `<b>"${teamName}"</b>\n` +
+            `${
+                usersList.length > 0
+                    ? `Состав участников: ${
+                          users.length > 0 ? users.join(', ') : ERRORS.usersNotFound
+                      }\n\n`
+                    : ''
+            }`;
+    }
+
+    return await bot
+        .sendMessage(keys.userId, message, { parse_mode: 'HTML' })
+        .finally(() => deleteLastMessage(keys));
+}
+
+export async function toggleVacation(ids: idKeys) {
+    const userData = await getUserInfo(ids);
+
+    if (isNotNil(userData)) {
+        return await updateUser({
+            ...ids,
+            isOnVacation: !userData.isOnVacation,
+        });
+    }
+
+    return await bot.sendMessage(ids.userId, ERRORS.userNotFound);
+}
+
 bot.on('callback_query', async (msg) => {
     const { data, ...ids } = getCallbackQueryData(msg);
 
@@ -68,6 +114,10 @@ bot.on('callback_query', async (msg) => {
 
         case 'about_me': {
             return await sendUserTeamInfo(ids);
+        }
+
+        case 'all_teams': {
+            return await sendAllTeamsInfo(ids);
         }
 
         case 'enable_vacation': {
