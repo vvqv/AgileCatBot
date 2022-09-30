@@ -13,6 +13,7 @@ export type Options =
     | 'manage_teams'
     | 'add_team'
     | 'about_me'
+    | 'all_teams'
     | 'create_notification'
     | 'manage_notifications'
     | 'public_notifications'

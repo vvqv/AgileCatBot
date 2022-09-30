@@ -52,7 +52,6 @@ export async function manageNotifications({ fromCommandLine, ...keys }: idKeys &
 
 async function showNotificationsInfo({
     notificationId,
-    type,
     ...ids
 }: idKeys & { notificationId: string } & NotificationsType) {
     const notificationData = await manageNotificationById(notificationId);

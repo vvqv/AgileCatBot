@@ -15,10 +15,32 @@ export function isUrl(message?: string, target: 'chat' | 'reply' = 'chat') {
         return false;
     }
 
-    const fromChat = /^(!https):\/\/(\w+:?\w*@)?(\S+)(:\d+)?(\/|\/([\w#!:.?+=&%@\-\/]))?$/;
+    const fromChat = /^(([!#@])https):\/\/(\w+:?\w*@)?(\S+)(:\d+)?(\/|\/([\w#!:.?+=&%@\-\/]))?$/;
     const fromReply = /^(https):\/\/(\w+:?\w*@)?(\S+)(:\d+)?(\/|\/([\w#!:.?+=&%@\-\/]))?$/;
 
     return target === 'chat' ? fromChat.test(message) : fromReply.test(message);
+}
+
+export function getUrlType(message?: string): Omit<Options, string> | null {
+    if (!message) {
+        return null;
+    }
+
+    const commandChar = message[0];
+
+    const isNeedRegularReview = /!/.test(commandChar);
+    const isNeedSingleReview = /@/.test(commandChar);
+
+    switch (true) {
+        case isNeedSingleReview: {
+            return 'change_reviewer';
+        }
+
+        case isNeedRegularReview:
+        default: {
+            return 'review_pr';
+        }
+    }
 }
 
 export function getUrlFromMessage(message: string) {
@@ -53,14 +75,23 @@ export function createChatCommands(botName: string) {
     return data as unknown as typeof commands;
 }
 
+function getUrlResult({ reply_to_message, text = '' }: Message) {
+    const isUrlCommand = isUrl(text) && !reply_to_message;
+
+    return {
+        isUserNeedsReview: isUrlCommand && getUrlType(text) === 'review_pr',
+        isUserNeedsSingleReview: isUrlCommand && getUrlType(text) === 'change_reviewer',
+    };
+}
+
 export async function getMessageData(message: Message) {
     const userName = message.from?.username;
     const userId = message.from?.id;
     const chatId = message.chat.id;
     const messageId = message.message_id;
     const msg = message.text || ''; // может быть стикером
-    const isReply = !!message.reply_to_message;
-    const isUserNeedsReview = isUrl(msg) && !isReply;
+
+    const { isUserNeedsSingleReview, isUserNeedsReview } = getUrlResult(message);
 
     if (!userId) {
         throw new Error(ERRORS.someIdsMissing);
@@ -77,10 +108,12 @@ export async function getMessageData(message: Message) {
         command.includes(msg)
     );
 
-    const hasUserCalledBot = hasUserEnteredBotCommand || isUserNeedsReview;
+    const hasUserCalledBot =
+        hasUserEnteredBotCommand || isUserNeedsReview || isUserNeedsSingleReview;
 
     return {
         hasUserCalledBot,
+        isUserNeedsSingleReview,
         isUserNeedsReview,
         msg,
         ...ids,

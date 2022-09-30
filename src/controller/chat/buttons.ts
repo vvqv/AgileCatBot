@@ -1,6 +1,6 @@
 import { createKeyboard } from '@utils/keyboards';
 
-import { getUserInfo, verifyLicenseInfo } from '@src/model';
+import { getUserInfo, getUserTeamInfo, verifyLicenseInfo } from '@src/model';
 import { idKeys, isNotNil, KeyboardItem } from '@src/utils';
 
 import { licenseMenu, mainMenu, reviewMenu } from './constants';
@@ -12,9 +12,9 @@ export async function getMainMenuButtons(keys: idKeys): Promise<KeyboardItem[][]
         return createKeyboard({ items: licenseMenu });
     }
 
-    const user = await getUserInfo(keys);
+    const userTeam = await getUserTeamInfo(keys);
 
-    if (!isNotNil(user)) {
+    if (!isNotNil(userTeam)) {
         return createKeyboard({
             items: mainMenu,
         });

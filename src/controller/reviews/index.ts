@@ -1,11 +1,11 @@
 import { ERRORS, NOTIFICATIONS, TREATMENTS } from '@src/constants';
 import { bot, getRandomUserFromAnotherTeam, getUserInfo, getUserTeamInfo } from '@src/model';
-import { getCallbackQueryData, idKeys, isUrl } from '@src/utils';
+import { getCallbackQueryData, getUrlFromMessage, idKeys, isDefined, isUrl } from '@src/utils';
 
 import { deleteLastMessage, sendMentions } from '../chat';
 
-export async function changeReviewer(ids: idKeys) {
-    const { userId, chatId } = ids;
+export async function changeReviewer(ids: idKeys & { message?: string }) {
+    const { userId, chatId, message } = ids;
 
     const userInfo = await getUserInfo(ids);
     const userTeamInfo = await getUserTeamInfo(ids);
@@ -20,6 +20,14 @@ export async function changeReviewer(ids: idKeys) {
 
     if (!randomUser) {
         return await bot.sendMessage(userId, ERRORS.userNotFound);
+    }
+
+    if (isDefined(message)) {
+        const newMessage = `${NOTIFICATIONS.extraRequest}\n${getUrlFromMessage(message)}\n@${
+            randomUser.name
+        }`;
+
+        return await bot.sendMessage(chatId, newMessage);
     }
 
     const replyMessage = await bot.sendMessage(
