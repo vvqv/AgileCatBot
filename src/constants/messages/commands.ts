@@ -19,6 +19,7 @@ export const COMMANDS = {
     specificTeamReview: 'Запросить ревью командой',
     randomTeamReview: 'Случайная команда',
     getInfo: 'Получить информацию',
+    getBotInfo: 'Что может бот?',
     enableVacation: 'Режим отпуска',
     aboutMe: 'О себе',
     aboutAll: 'Обо всех',

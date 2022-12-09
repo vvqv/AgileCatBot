@@ -25,6 +25,10 @@ export const licenseMenu = [
 
 export const quitButton: KeyboardItem[] = [{ text: `\u{1F51A}`, callback_data: 'quit' }];
 
+export const aboutBotButton: KeyboardItem[] = [
+    { text: `${COMMANDS.getBotInfo} \u{1F638}`, callback_data: 'about_bot' },
+];
+
 export function getBackButton(menuItem: Menus): KeyboardItem[] {
     return [{ text: `\u{1F519}`, callback_data: `go_back ${menuItem}` }];
 }

@@ -1,3 +1,5 @@
+import { getBotInfo } from '@controller/info/constants';
+
 import { ERRORS, TREATMENTS } from '@src/constants';
 import {
     bot,
@@ -107,12 +109,22 @@ export async function toggleVacation(ids: idKeys) {
         .finally(() => deleteLastMessage(ids));
 }
 
+export async function getAboutBotInfo(ids: idKeys) {
+    return await bot
+        .sendMessage(ids.userId, getBotInfo(), { parse_mode: 'HTML' })
+        .finally(() => deleteLastMessage(ids));
+}
+
 bot.on('callback_query', async (msg) => {
     const { data, ...ids } = getCallbackQueryData(msg);
 
     switch (data) {
         case 'get_info': {
             return await getInformation(ids);
+        }
+
+        case 'about_bot': {
+            return await getAboutBotInfo(ids);
         }
 
         case 'about_me': {
