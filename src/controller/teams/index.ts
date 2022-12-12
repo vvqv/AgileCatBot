@@ -124,7 +124,6 @@ bot.on('callback_query', async (msg) => {
                 const [, teamId] = data.split(' ');
 
                 return await updateUser({
-                    isOnVacation: false,
                     teamId,
                     ...ids,
                 });

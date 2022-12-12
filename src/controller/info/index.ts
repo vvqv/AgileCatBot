@@ -1,3 +1,7 @@
+import { selectDate } from '@controller/calendar';
+import { getBotInfo } from '@controller/info/constants';
+import moment from 'moment';
+
 import { ERRORS, TREATMENTS } from '@src/constants';
 import {
     bot,
@@ -54,14 +58,21 @@ export async function sendUserTeamInfo(keys: idKeys) {
     const { userId, chatId } = keys;
 
     const userTeamInfo = await getUserTeamInfo(keys);
+    const userInfo = await getUserInfo(keys);
 
-    if (!userTeamInfo) {
+    if (!userInfo || !userTeamInfo) {
         return await bot.sendMessage(userId, ERRORS.userNotFound);
     }
 
     const groupName = await bot.getChat(chatId);
 
-    const message = `В группе "${groupName.title}", ваша команда: ${userTeamInfo.teamName}`;
+    const message = `В группе "${groupName.title}", ваша команда: ${
+        userTeamInfo.teamName
+    }\n\nСтатус: ${
+        isNotNil(userInfo.endVacationDateTime)
+            ? 'В отпуске до ' + moment(userInfo.endVacationDateTime).format('DD.MM')
+            : 'Не в отпуске'
+    }`;
 
     return await bot.sendMessage(userId, message).finally(() => deleteLastMessage(keys));
 }
@@ -91,20 +102,46 @@ export async function sendAllTeamsInfo(keys: idKeys) {
         .finally(() => deleteLastMessage(keys));
 }
 
-export async function toggleVacation(ids: idKeys) {
+export async function toggleVacation({ fromCommandLine, ...ids }: idKeys & WithCommandLine) {
     const userData = await getUserInfo(ids);
     const userTeam = await getUserTeamInfo(ids);
 
     if (isNotNil(userData) && isNotNil(userTeam)) {
-        return await updateUser({
-            ...ids,
-            isOnVacation: !userData.isOnVacation,
-        });
+        const { isOnVacation } = userData;
+
+        return isOnVacation
+            ? await updateUser({
+                  ...ids,
+                  vacationDate: null,
+              })
+            : await selectVacationEndDate({ fromCommandLine, ...ids });
     }
 
     return await bot
         .sendMessage(ids.userId, ERRORS.userNotFound)
         .finally(() => deleteLastMessage(ids));
+}
+
+export async function getAboutBotInfo(ids: idKeys) {
+    return await bot
+        .sendMessage(ids.userId, getBotInfo(), { parse_mode: 'HTML' })
+        .finally(() => deleteLastMessage(ids));
+}
+
+async function selectVacationEndDate({ fromCommandLine, ...ids }: idKeys & WithCommandLine) {
+    const minDate = new Date();
+    const maxDate = new Date();
+
+    maxDate.setDate(maxDate.getDate() + 21);
+
+    return await selectDate({
+        ...ids,
+        fromCommandLine,
+        minDate,
+        maxDate,
+        action: 'select_vacation_date',
+        goTo: 'main',
+    });
 }
 
 bot.on('callback_query', async (msg) => {
@@ -113,6 +150,10 @@ bot.on('callback_query', async (msg) => {
     switch (data) {
         case 'get_info': {
             return await getInformation(ids);
+        }
+
+        case 'about_bot': {
+            return await getAboutBotInfo(ids);
         }
 
         case 'about_me': {
@@ -124,26 +165,33 @@ bot.on('callback_query', async (msg) => {
         }
 
         case 'enable_vacation': {
-            return await updateUser({
-                ...ids,
-                isOnVacation: true,
-            });
+            return await selectVacationEndDate(ids);
         }
 
         case 'disable_vacation': {
             return await updateUser({
                 ...ids,
-                isOnVacation: false,
+                vacationDate: null,
             });
         }
 
         default: {
             const shouldSendInfoAboutSpecificTeam = data.includes('get_info_team');
+            const shouldUpdateVacationInfo = data.includes('select_vacation_date');
 
             if (shouldSendInfoAboutSpecificTeam) {
                 const [, teamId] = data.split(' ');
 
                 return await sendTeamInfo({ ...ids, teamId });
+            }
+
+            if (shouldUpdateVacationInfo) {
+                const [, date, month, year] = data.split(' ');
+
+                return await updateUser({
+                    ...ids,
+                    vacationDate: new Date(Number(year), Number(month), Number(date)),
+                });
             }
         }
     }

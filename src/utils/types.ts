@@ -13,11 +13,13 @@ export type Options =
     | 'manage_teams'
     | 'add_team'
     | 'about_me'
+    | 'about_bot'
     | 'all_teams'
     | 'create_notification'
     | 'manage_notifications'
     | 'public_notifications'
     | 'personal_notifications'
+    | 'select_vacation_date'
     | string;
 
 export const menuItems = [
