@@ -59,7 +59,7 @@ async function init() {
                 : commands.reviewCommand.includes(msg)
                 ? await specificTeamReview({ ...ids, fromCommandLine: true })
                 : commands.vacation.includes(msg)
-                ? await toggleVacation(ids)
+                ? await toggleVacation({ ...ids, fromCommandLine: true })
                 : isUserNeedsReview
                 ? await sendMentions({ ...ids, message: msg })
                 : isUserNeedsSingleReview

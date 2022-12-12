@@ -19,6 +19,7 @@ export type Options =
     | 'manage_notifications'
     | 'public_notifications'
     | 'personal_notifications'
+    | 'select_vacation_date'
     | string;
 
 export const menuItems = [

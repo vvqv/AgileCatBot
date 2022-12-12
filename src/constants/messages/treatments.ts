@@ -1,6 +1,7 @@
 export const TREATMENTS = {
     enterRequestLink: 'введите ссылку для ревью',
     selectTeam: 'Пожалуйста, выберите команду:',
+    selectDate: 'Пожалуйста, выберите дату:',
     greetingsUser: 'Вас приветствует Agile Cat\n\nПривет и добро пожаловать!',
     initializeBot: 'Пожалуйста, сперва инициализируйте бота. Перейдите к нему в ЛС:',
     andActivate: 'и нажмите "Запустить"',

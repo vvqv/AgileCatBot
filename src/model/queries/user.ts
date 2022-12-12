@@ -18,9 +18,7 @@ import {
 import { bot } from '../index';
 import { LicensesModel, TeamsModel, UserGroupsModel, UserModel } from '../models';
 
-type UserPayload = Partial<Pick<User, 'isOnVacation'>> &
-    Partial<Pick<UserGroups, 'teamId'>> &
-    idKeys;
+type UserPayload = Partial<Pick<UserGroups, 'teamId'>> & idKeys & { vacationDate?: Date | null };
 
 export async function convertAllData() {
     const licensesModel = await LicensesModel.findAll();
@@ -278,8 +276,10 @@ async function addUser({
     return await createError(ERRORS.dataCorrupted).then(() => deleteLastMessage(ids));
 }
 
-export async function updateUser({ teamId, isOnVacation, ...ids }: UserPayload) {
+export async function updateUser({ teamId, vacationDate, ...ids }: UserPayload) {
     const { userId, userName, chatId } = ids;
+
+    const shouldUpdateVacation = isDefined(vacationDate);
 
     if (!isDefined(userName)) {
         return await bot.sendMessage(userId, ERRORS.pleaseSetNickName);
@@ -308,19 +308,15 @@ export async function updateUser({ teamId, isOnVacation, ...ids }: UserPayload) 
         return await deleteLastMessage(ids);
     }
 
-    const fieldsToSetUserModel: Partial<User> = {
-        isOnVacation,
-        endVacationDateTime: null,
-    };
+    if (shouldUpdateVacation) {
+        const fieldsToSetUserModel: Partial<User> = {
+            isOnVacation: isNotNil(vacationDate),
+            endVacationDateTime: isNotNil(vacationDate) ? vacationDate : null,
+        };
 
-    if (isOnVacation) {
-        const endVacationDate = new Date();
-        endVacationDate.setDate(endVacationDate.getDate() + 7);
-
-        fieldsToSetUserModel.endVacationDateTime = endVacationDate;
+        userModel.set(fieldsToSetUserModel);
     }
 
-    userModel.set(fieldsToSetUserModel);
     userGroupModel.set({
         teamId,
         chatId: encryptData(`${chatId}`),

@@ -1,6 +1,6 @@
 {
   "name": "agile_cat_bot",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Chat bot for developers",
   "main": "index.js",
   "scripts": {
