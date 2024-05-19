@@ -11,6 +11,7 @@ import {
     selectAction,
     sendMentions,
     specificTeamReview,
+    toggleVacation,
 } from './controller';
 import { restoreJobs } from './controller/shedules';
 import { bot, deleteUser, initDB } from './model';
@@ -25,19 +26,25 @@ async function init() {
     const commands = createChatCommands(config.NAME);
 
     bot.on('message', async (message) => {
-        const { isUserNeedsReview, hasUserCalledBot, msg, userName, ...keys } =
-            await getMessageData(message);
+        const {
+            isUserNeedsReview,
+            isUserNeedsSingleReview,
+            hasUserCalledBot,
+            msg,
+            userName,
+            ...keys
+        } = await getMessageData(message);
+
+        const ids: idKeys = {
+            ...keys,
+            userName: userName || '',
+        };
 
         if (hasUserCalledBot) {
             if (!isDefined(userName)) {
                 await deleteLastMessage({ ...keys, userName: '' });
                 return await bot.sendMessage(keys.chatId, ERRORS.pleaseSetNickName);
             }
-
-            const ids: idKeys = {
-                ...keys,
-                userName: '',
-            };
 
             return ids.chatId === ids.userId
                 ? await restrictChatAction(ids)
@@ -51,14 +58,19 @@ async function init() {
                 ? await sendMentions(ids)
                 : commands.reviewCommand.includes(msg)
                 ? await specificTeamReview({ ...ids, fromCommandLine: true })
-                : message.left_chat_member
-                ? await deleteUser({ ...ids, userId: message.left_chat_member.id })
-                : message.new_chat_members
-                ? await greetingsUser(ids)
+                : commands.vacation.includes(msg)
+                ? await toggleVacation({ ...ids, fromCommandLine: true })
                 : isUserNeedsReview
                 ? await sendMentions({ ...ids, message: msg })
+                : isUserNeedsSingleReview
+                ? await changeReviewer({ ...ids, message: msg })
                 : null;
         }
+
+        message.left_chat_member &&
+            (await deleteUser({ ...ids, userId: message.left_chat_member.id }));
+
+        message.new_chat_members && (await greetingsUser(ids));
     });
 }
 

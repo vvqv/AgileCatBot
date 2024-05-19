@@ -1,8 +1,16 @@
 import { createKeyboard } from '@utils/keyboards';
+import moment from 'moment';
 
-import { ERRORS } from '@src/constants';
+import { ERRORS, TREATMENTS } from '@src/constants';
 import { bot } from '@src/model';
-import { getCallbackQueryData, idKeys, isDefined, KeyboardItem } from '@src/utils';
+import {
+    getCallbackQueryData,
+    idKeys,
+    isDefined,
+    KeyboardItem,
+    sendWithCommandLine,
+    WithCommandLine,
+} from '@src/utils';
 
 import { WithGoTo } from '../navigation';
 
@@ -10,7 +18,7 @@ import { getCalendarData } from './calendar';
 
 const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-const payload: { action?: string } & WithGoTo = {};
+const payload: { action?: string; minDate?: Date; maxDate?: Date } & WithGoTo = {};
 
 function getNavigationButtons({
     year,
@@ -98,18 +106,26 @@ export function createCalendar({
 }
 
 export async function selectDate({
+    minDate = new Date(moment().year(), moment().month()),
+    maxDate = new Date(moment().year() + 1, 1),
+    fromCommandLine = false,
     action,
-    messageId,
-    chatId,
     monthTo,
     yearTo,
     goTo,
-}: idKeys & { action: string; monthTo?: number; yearTo?: number } & WithGoTo) {
+    ...ids
+}: idKeys & {
+    action: string;
+    monthTo?: number;
+    yearTo?: number;
+    minDate?: Date;
+    maxDate?: Date;
+} & WithGoTo &
+    WithCommandLine) {
     payload.action = action;
     payload.goTo = goTo;
-
-    const maxDate = new Date(2023, 1);
-    const minDate = new Date(2022, 5);
+    payload.minDate = minDate;
+    payload.maxDate = maxDate;
 
     const keyboard = createCalendar({
         selectAction: action,
@@ -120,12 +136,12 @@ export async function selectDate({
         goTo: payload.goTo,
     });
 
-    return await bot.editMessageReplyMarkup(
-        {
-            inline_keyboard: keyboard,
-        },
-        { message_id: messageId, chat_id: chatId }
-    );
+    return await sendWithCommandLine({
+        fromCommandLine,
+        messageText: TREATMENTS.selectDate,
+        keyboard,
+        ...ids,
+    });
 }
 
 bot.on('callback_query', async (msg) => {
@@ -143,6 +159,8 @@ bot.on('callback_query', async (msg) => {
             action: payload.action || 'calendar_null',
             monthTo: Number(monthNumber),
             yearTo: Number(yearNumber),
+            minDate: payload.minDate,
+            maxDate: payload.maxDate,
             goTo: payload.goTo,
         });
     }

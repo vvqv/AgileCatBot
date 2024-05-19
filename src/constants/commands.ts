@@ -6,6 +6,7 @@ export const commands = {
     info: ['/info'],
     change: ['/change'],
     review: ['/review'],
+    vacation: ['/vacation'],
     reviewCommand: ['/team'],
 };
 
@@ -25,6 +26,10 @@ export const setBotCommands: BotCommand[] = [
     {
         command: '/change',
         description: COMMANDS.changeReviewer,
+    },
+    {
+        command: '/vacation',
+        description: COMMANDS.enableVacation,
     },
     {
         command: '/info',
