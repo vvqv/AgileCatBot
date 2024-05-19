@@ -11,7 +11,7 @@ import { isDefined, isNotNil, isTruthy } from '@src/utils';
 export const notifyManager = getNotifyAgendaManager();
 
 async function getNotifyAgendaManager() {
-    const client = new MongoClient(`mongodb://${config.HOST}/${config.AGENDA_DB_NAME}`, {
+    const client = new MongoClient(`mongodb://${config.AGENDA_DB_HOST}/${config.AGENDA_DB_NAME}`, {
         auth: { username: `${config.AGENDA_DB_USER}`, password: `${config.AGENDA_DB_PASS}` },
     });
 
