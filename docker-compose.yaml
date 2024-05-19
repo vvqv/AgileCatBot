@@ -1,0 +1,68 @@
+version: '3.5'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - agile-cat
+    restart: unless-stopped
+
+  mongo:
+    container_name: mongo
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-root}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-mongo}
+      MONGO_USER: ${MONGO_USER:-user}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:-password}
+    ports:
+      - "27017:27017"
+    networks:
+      - agile-cat
+    volumes:
+      - mongodb:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    restart: unless-stopped
+
+  agile-cat:
+    container_name: agile-cat
+    image: agile-cat
+    build: .
+    depends_on:
+      - postgres
+      - mongo
+    environment:
+      NAME: ${BOT_NAME:-botName}
+      TOKEN: ${BOT_TOKEN:-botToken}
+      DB_NAME: ${POSTGRES_DB:-postgres}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      HOST: postgres
+      PORT: 5432
+      AGENDA_DB_HOST: mongo
+      AGENDA_DB_NAME: ${MONGO_DB:-mongo}
+      AGENDA_DB_USER: ${MONGO_USER:-user}
+      AGENDA_DB_PASS: ${MONGO_PASSWORD:-password}
+      ENCRYPTION_PRIVATE_KEY: ${ENCRYPTION_PRIVATE_KEY:-key}
+      ENCRYPTION_IV: ${ENCRYPTION_IV:-key}
+    networks:
+      - agile-cat
+    restart: unless-stopped
+
+networks:
+  agile-cat:
+    driver: bridge
+
+volumes:
+  postgres:
+  mongodb:
